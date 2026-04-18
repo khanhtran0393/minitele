@@ -1,47 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 import { getSecretForItem } from '@/app/server/item-secrets';
-
-// Make purchases accessible to other routes
-// @ts-ignore - This is a demo, in a real app we would use a proper data store
-if (!global.purchases) {
-  // @ts-ignore
-  global.purchases = [];
-}
-
-// @ts-ignore
-const purchases = global.purchases;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, itemId, transactionId } = body;
+    const { userId, itemId } = body;
 
-    if (!userId || !itemId || !transactionId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!userId || !itemId) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    // In a real application, you would verify the payment with Telegram
-    // before storing it as successful
+    // Kiểm tra giao dịch thực tế từ bảng 'purchases' trong Supabase
+    const { data: purchase, error } = await supabase
+      .from('purchases')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('item_id', itemId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    // Get the secret code for this item
+    if (error || !purchase) {
+      return NextResponse.json({ error: 'Thanh toán chưa được xác nhận' }, { status: 404 });
+    }
+
+    // Lấy Secret Code tương ứng với sản phẩm
     const secret = getSecretForItem(itemId);
     
-    if (!secret) {
-      return NextResponse.json({ error: 'Secret not found for this item' }, { status: 404 });
-    }
-
-    // Store the purchase
-    purchases.push({
-      userId,
-      itemId,
-      timestamp: Date.now(),
-      transactionId
+    return NextResponse.json({ 
+      success: true, 
+      secret: secret,
+      message: 'Xác thực thành công qua Supabase'
     });
 
-    // Return the secret to the client
-    return NextResponse.json({ success: true, secret });
   } catch (error) {
-    console.error('Error storing successful payment:', error);
-    return NextResponse.json({ error: 'Failed to store payment data' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
   }
-} 
+}
