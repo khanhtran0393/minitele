@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     // Trả về link thanh toán cho khách, không lưu bất cứ thứ gì vào DB
     return NextResponse.json({ invoiceLink: data.result });
 
-  } catch (_error) {
+  } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

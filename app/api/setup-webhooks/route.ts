@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ message: "Kết quả thiết lập Webhook", details: results });
-  } catch (_err) {
+  } catch {
     return NextResponse.json({ error: 'Lỗi hệ thống' }, { status: 500 });
   }
 }

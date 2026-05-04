@@ -213,7 +213,7 @@ export default function Home() {
   };
 
   // Redirect users to the bot for refunds
-  const handleRefund = (_transactionId: string) => {
+  const handleRefund = () => {
     setModalState({ type: 'refund' });
   };
 

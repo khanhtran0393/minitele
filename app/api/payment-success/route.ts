@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Mock db cho mục đích demo (lưu vào biến in-memory global)
-      // @ts-expect-error
+      // @ts-expect-error - ignore global
       if (!global.purchases) global.purchases = [];
-      // @ts-expect-error
+      // @ts-expect-error - ignore global
       global.purchases.push({
         id: Date.now().toString(),
         userId,
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       message: 'Xác thực thành công'
     });
 
-  } catch (_error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
   }
 }

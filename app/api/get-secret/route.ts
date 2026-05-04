@@ -4,11 +4,11 @@ import { getSecretForItem } from '@/app/server/item-secrets';
 // Get reference to the purchases from the global store
 // @ts-expect-error - This is a demo, in a real app we would use a proper data store
 if (!global.purchases) {
-  // @ts-expect-error
+  // @ts-expect-error - ignore global
   global.purchases = [];
 }
 
-// @ts-expect-error
+// @ts-expect-error - ignore global
 const purchases = global.purchases;
 
 export async function GET(req: NextRequest) {
