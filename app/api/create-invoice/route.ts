@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       ...(agent ? { agent } : {})
     });
 
-    const data: any = await response.json();
+    const data = await response.json() as { ok: boolean, result: string };
     
     if (!data.ok) {
       return NextResponse.json({ error: 'Telegram Error' }, { status: 500 });
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     // Trả về link thanh toán cho khách, không lưu bất cứ thứ gì vào DB
     return NextResponse.json({ invoiceLink: data.result });
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

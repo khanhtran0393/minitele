@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       const telegramUrl = `https://api.telegram.org/bot${store.bot_token}/setWebhook?url=${webhookUrl}`;
 
       const res = await fetch(telegramUrl);
-      const data: any = await res.json();
+      const data = await res.json() as { ok: boolean, description?: string };
 
       results.push({
         store: store.id,
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ message: "Kết quả thiết lập Webhook", details: results });
-  } catch (err) {
+  } catch (_err) {
     return NextResponse.json({ error: 'Lỗi hệ thống' }, { status: 500 });
   }
 }

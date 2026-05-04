@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   // For this demo app, we're directing users to use the bot for refunds
   // since we don't have a real database with transaction IDs
   return NextResponse.json({ 

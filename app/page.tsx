@@ -70,6 +70,7 @@ export default function Home() {
     if (initialized && userId) {
       fetchPurchases();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized, userId]);
 
   const fetchPurchases = async () => {
@@ -212,7 +213,7 @@ export default function Home() {
   };
 
   // Redirect users to the bot for refunds
-  const handleRefund = (transactionId: string) => {
+  const handleRefund = (_transactionId: string) => {
     setModalState({ type: 'refund' });
   };
 
