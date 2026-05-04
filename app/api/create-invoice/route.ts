@@ -20,20 +20,30 @@ export async function POST(req: NextRequest) {
     const item = getItemById(itemId);
     if (!item) return NextResponse.json({ error: 'Invalid item' }, { status: 400 });
 
-    // 1. Lấy nhanh cấu hình Bot/Proxy từ Supabase (Chỉ đọc, không ghi log)
-    const { data: store } = await supabase
-      .from('stores')
-      .select('bot_token, proxy_url')
-      .eq('id', storeId)
-      .single();
+    // 1. Lấy cấu hình Bot/Proxy từ Supabase (nếu có cấu hình) hoặc từ biến môi trường
+    let botToken = process.env.BOT_TOKEN;
+    let agent = undefined;
 
-    if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 500 });
+    // Thử lấy từ Supabase nếu đã cấu hình URL
+    if (process.env.SUPABASE_URL && !process.env.SUPABASE_URL.includes('your-project-id')) {
+      const { data: store } = await supabase
+        .from('stores')
+        .select('bot_token, proxy_url')
+        .eq('id', storeId)
+        .single();
+      
+      if (store) {
+        if (store.bot_token) botToken = store.bot_token;
+        if (store.proxy_url) agent = new HttpsProxyAgent(store.proxy_url);
+      }
+    }
 
-    // 2. Thiết lập Proxy để "tàng hình"
-    const agent = new HttpsProxyAgent(store.proxy_url);
+    if (!botToken) {
+      return NextResponse.json({ error: 'Bot token not found. Please set BOT_TOKEN in .env or configure Supabase stores.' }, { status: 500 });
+    }
 
-    // 3. Tạo Invoice Link trực tiếp từ Telegram
-    const response = await fetch(`https://api.telegram.org/bot${store.bot_token}/createInvoiceLink`, {
+    // 2. Tạo Invoice Link trực tiếp từ Telegram
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -44,7 +54,7 @@ export async function POST(req: NextRequest) {
         currency: 'XTR',    
         prices: [{ label: item.name, amount: item.price }],
       }),
-      agent: agent 
+      ...(agent ? { agent } : {})
     });
 
     const data: any = await response.json();

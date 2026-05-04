@@ -9,17 +9,26 @@ export async function POST(request: Request) {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get('id') || 'default_store';
 
-    // 1. Lấy cấu hình Store từ Supabase (Token & Proxy của từng shop)
-    const { data: store } = await supabase
-      .from('stores')
-      .select('*')
-      .eq('id', storeId)
-      .single();
+    let botToken = process.env.BOT_TOKEN;
+    let agent = undefined;
 
-    if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    // Thử lấy từ Supabase nếu đã cấu hình URL
+    if (process.env.SUPABASE_URL && !process.env.SUPABASE_URL.includes('your-project-id')) {
+      const { data: store } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('id', storeId)
+        .single();
+      
+      if (store) {
+        if (store.bot_token) botToken = store.bot_token;
+        if (store.proxy_url) agent = new HttpsProxyAgent(store.proxy_url);
+      }
+    }
 
-    const agent = new HttpsProxyAgent(store.proxy_url);
-    const botToken = store.bot_token;
+    if (!botToken) {
+      return NextResponse.json({ error: 'Bot token not found' }, { status: 500 });
+    }
 
     // 2. XỬ LÝ THANH TOÁN: Bước xác nhận (Pre-checkout Query)
     if (body.pre_checkout_query) {
@@ -30,23 +39,26 @@ export async function POST(request: Request) {
           pre_checkout_query_id: body.pre_checkout_query.id,
           ok: true,
         }),
-        agent: agent, // Đi qua Proxy của shop đó
+        ...(agent ? { agent } : {})
       });
       return NextResponse.json({ ok: true });
     }
 
-    // 3. XỬ LÝ THANH TOÁN THÀNH CÔNG: Ghi vào Supabase
+    // 3. XỬ LÝ THANH TOÁN THÀNH CÔNG: Ghi vào Supabase / Mock DB
     if (body.message?.successful_payment) {
       const payment = body.message.successful_payment;
       
-      await supabase.from('purchases').insert({
-        user_id: body.message.from.id,
-        item_id: payment.invoice_payload,
-        amount: payment.total_amount,
-        currency: payment.currency,
-        store_id: storeId,
-        created_at: new Date().toISOString()
-      });
+      if (process.env.SUPABASE_URL && !process.env.SUPABASE_URL.includes('your-project-id')) {
+        await supabase.from('purchases').insert({
+          user_id: body.message.from.id,
+          item_id: payment.invoice_payload,
+          amount: payment.total_amount,
+          currency: payment.currency,
+          store_id: storeId,
+          created_at: new Date().toISOString()
+        });
+      }
+      // Note: Nếu không dùng Supabase thì webhook thành công sẽ được page.tsx gọi đến api/payment-success để update global.purchases
 
       return NextResponse.json({ ok: true });
     }
