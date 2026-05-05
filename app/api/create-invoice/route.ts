@@ -57,16 +57,18 @@ export async function POST(req: NextRequest) {
       ...(agent ? { agent } : {})
     });
 
-    const data = await response.json() as { ok: boolean, result: string };
+    const data = await response.json() as any;
     
     if (!data.ok) {
-      return NextResponse.json({ error: 'Telegram Error' }, { status: 500 });
+      console.error('Telegram API Error:', data);
+      return NextResponse.json({ error: `Telegram Error: ${data.description || 'Unknown error'}` }, { status: 500 });
     }
     
     // Trả về link thanh toán cho khách, không lưu bất cứ thứ gì vào DB
     return NextResponse.json({ invoiceLink: data.result });
 
-  } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Catch Error:', error);
+    return NextResponse.json({ error: `Failed: ${error.message}` }, { status: 500 });
   }
 }
