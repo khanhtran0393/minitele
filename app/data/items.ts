@@ -13,7 +13,7 @@ export const ITEMS: Item[] = [
     id: 'ice_cream',
     name: 'Ice Cream 🍦',
     description: 'A delicious virtual ice cream',
-    price: 25,
+    price: 1,
     icon: '🍦'
   },
   {
