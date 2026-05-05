@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export async function POST() {
   // For this demo app, we're directing users to use the bot for refunds

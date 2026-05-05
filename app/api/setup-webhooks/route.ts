@@ -49,7 +49,8 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ message: "Kết quả thiết lập Webhook", details: results });
-  } catch (error: any) {
-    return NextResponse.json({ error: 'Lỗi hệ thống: ' + error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Lỗi hệ thống: ' + errorMessage }, { status: 500 });
   }
 }
