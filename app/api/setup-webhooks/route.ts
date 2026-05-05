@@ -4,33 +4,52 @@ import fetch from 'node-fetch';
 
 export async function GET(request: Request) {
   try {
-    // 1. Lấy danh sách Bot từ Database
-    const { data: stores, error } = await supabase.from('stores').select('id, bot_token');
-    
-    if (error || !stores) return NextResponse.json({ error: 'Không lấy được dữ liệu' });
-
     const results = [];
     // Tự động lấy Domain của bạn (Vercel hoặc Localhost)
     const host = request.headers.get('host');
     const protocol = host?.includes('localhost') ? 'http' : 'https';
     const domain = `${protocol}://${host}`;
 
-    for (const store of stores) {
-      const webhookUrl = `${domain}/api/webhook?id=${store.id}`;
-      const telegramUrl = `https://api.telegram.org/bot${store.bot_token}/setWebhook?url=${webhookUrl}`;
-
+    // 1. Thử lấy từ biến môi trường BOT_TOKEN trước
+    if (process.env.BOT_TOKEN) {
+      const webhookUrl = `${domain}/api/webhook`;
+      const telegramUrl = `https://api.telegram.org/bot${process.env.BOT_TOKEN}/setWebhook?url=${webhookUrl}`;
       const res = await fetch(telegramUrl);
       const data = await res.json() as { ok: boolean, description?: string };
-
       results.push({
-        store: store.id,
+        store: 'env_BOT_TOKEN',
         success: data.ok,
         description: data.description || 'Thành công'
       });
     }
 
+    // 2. Lấy danh sách Bot từ Database (nếu Supabase được cấu hình)
+    if (process.env.SUPABASE_URL && !process.env.SUPABASE_URL.includes('your-project-id')) {
+      const { data: stores, error } = await supabase.from('stores').select('id, bot_token');
+      
+      if (!error && stores) {
+        for (const store of stores) {
+          const webhookUrl = `${domain}/api/webhook?id=${store.id}`;
+          const telegramUrl = `https://api.telegram.org/bot${store.bot_token}/setWebhook?url=${webhookUrl}`;
+
+          const res = await fetch(telegramUrl);
+          const data = await res.json() as { ok: boolean, description?: string };
+
+          results.push({
+            store: store.id,
+            success: data.ok,
+            description: data.description || 'Thành công'
+          });
+        }
+      }
+    }
+
+    if (results.length === 0) {
+      return NextResponse.json({ error: 'Không tìm thấy BOT_TOKEN trong env hay cấu hình Supabase hợp lệ.' }, { status: 400 });
+    }
+
     return NextResponse.json({ message: "Kết quả thiết lập Webhook", details: results });
-  } catch {
-    return NextResponse.json({ error: 'Lỗi hệ thống' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Lỗi hệ thống: ' + error.message }, { status: 500 });
   }
 }
